@@ -40,7 +40,7 @@ pipeline {
             steps {
                 echo "Initialising Terraform..."
                 dir("${TF_DIR}") {
-                    bat "terraform init -backend-config=resource_group_name=tf-rg -backend-config=storage_account_name=tfstorageprod177 -backend-config=container_name=tfstate -backend-config=key=%ENVIRONMENT%/terraform.tfstate"
+                    bat "terraform init -reconfigure -backend-config=resource_group_name=tf-rg -backend-config=storage_account_name=tfstorageprod177 -backend-config=container_name=tfstate -backend-config=key=%ENVIRONMENT%/terraform.tfstate"
                 }
             }
         }
