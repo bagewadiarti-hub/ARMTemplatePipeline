@@ -11,7 +11,6 @@ pipeline {
         ARM_CLIENT_SECRET       = credentials('azure-client-secret')
         ARM_TENANT_ID           = credentials('azure-tenant-id')
         VMSS_ADMIN_PASSWORD     = credentials('vmss-admin-password')
-        STORAGE_ACCOUNT_KEY     = credentials('storage-account-key')
     }
     parameters {
         choice(
@@ -93,7 +92,7 @@ pipeline {
             steps {
                 echo "Running Terraform Plan..."
                 dir("${TF_DIR}") {
-                    bat "terraform plan -var-file=%ENVIRONMENT%.tfvars -var=storage_account_key=%STORAGE_ACCOUNT_KEY% -var=vmss_admin_password=%VMSS_ADMIN_PASSWORD% -var=storage_account_name=%STORAGE_ACCOUNT_NAME% -var=vmss_name=%VMSS_NAME% -var=vmss_admin_username=%VMSS_ADMIN_USERNAME% -var=vmss_instance_count=%VMSS_INSTANCE_COUNT% -var=adf_name=%ADF_NAME% -var=adf_source_container=%ADF_SOURCE_CONTAINER% -var=adf_destination_container=%ADF_DESTINATION_CONTAINER% -var=adf_trigger_start_time=%ADF_TRIGGER_START_TIME% -out=tfplan"
+                    bat "terraform plan -var-file=%ENVIRONMENT%.tfvars -var=vmss_admin_password=%VMSS_ADMIN_PASSWORD% -var=storage_account_name=%STORAGE_ACCOUNT_NAME% -var=vmss_name=%VMSS_NAME% -var=vmss_admin_username=%VMSS_ADMIN_USERNAME% -var=vmss_instance_count=%VMSS_INSTANCE_COUNT% -var=adf_name=%ADF_NAME% -var=adf_source_container=%ADF_SOURCE_CONTAINER% -var=adf_destination_container=%ADF_DESTINATION_CONTAINER% -var=adf_trigger_start_time=%ADF_TRIGGER_START_TIME% -out=tfplan"
                 }
             }
         }
