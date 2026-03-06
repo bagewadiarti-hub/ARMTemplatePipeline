@@ -40,9 +40,11 @@ resource "azurerm_resource_group_template_deployment" "storage" {
   template_content = file("${path.module}/../arm_templates/storage.json")
 
   parameters_content = jsonencode({
-    storageAccountName = { value = var.storage_account_name }
-    environment        = { value = var.environment }
-    skuName            = { value = "Standard_LRS" }
+    storageAccountName       = { value = var.storage_account_name }
+    environment              = { value = var.environment }
+    skuName                  = { value = "Standard_LRS" }
+    sourceContainerName      = { value = var.adf_source_container }
+    destinationContainerName = { value = var.adf_destination_container }
   })
 
   tags = {
