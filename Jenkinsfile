@@ -5,11 +5,13 @@ pipeline {
         terraform 'terraform'
     }
     environment {
-        TF_DIR = "terraform"
-        ARM_SUBSCRIPTION_ID = credentials('azure-subscription-id')
-        ARM_CLIENT_ID       = credentials('azure-client-id')
-        ARM_CLIENT_SECRET   = credentials('azure-client-secret')
-        ARM_TENANT_ID       = credentials('azure-tenant-id')
+        TF_DIR                  = "terraform"
+        ARM_SUBSCRIPTION_ID     = credentials('azure-subscription-id')
+        ARM_CLIENT_ID           = credentials('azure-client-id')
+        ARM_CLIENT_SECRET       = credentials('azure-client-secret')
+        ARM_TENANT_ID           = credentials('azure-tenant-id')
+        VMSS_ADMIN_PASSWORD     = credentials('vmss-admin-password')
+        STORAGE_ACCOUNT_KEY     = credentials('storage-account-key')
     }
     parameters {
         choice(
@@ -20,7 +22,42 @@ pipeline {
         string(
             name: 'STORAGE_ACCOUNT_NAME',
             defaultValue: 'stgdemostorage179',
-            description: 'Name of the storage account to create'
+            description: 'Name of the storage account'
+        )
+        string(
+            name: 'VMSS_NAME',
+            defaultValue: 'vmss-demo-dev',
+            description: 'Name of the Virtual Machine Scale Set'
+        )
+        string(
+            name: 'VMSS_ADMIN_USERNAME',
+            defaultValue: 'azureuser',
+            description: 'Admin username for VMSS instances'
+        )
+        string(
+            name: 'VMSS_INSTANCE_COUNT',
+            defaultValue: '1',
+            description: 'Number of VMSS instances'
+        )
+        string(
+            name: 'ADF_NAME',
+            defaultValue: 'adf-demo-pipeline-dev',
+            description: 'Azure Data Factory name (must be globally unique)'
+        )
+        string(
+            name: 'ADF_SOURCE_CONTAINER',
+            defaultValue: 'source-container',
+            description: 'Source blob container for ADF copy pipeline'
+        )
+        string(
+            name: 'ADF_DESTINATION_CONTAINER',
+            defaultValue: 'destination-container',
+            description: 'Destination blob container for ADF copy pipeline'
+        )
+        string(
+            name: 'ADF_TRIGGER_START_TIME',
+            defaultValue: '2026-01-01T00:00:00Z',
+            description: 'ADF schedule trigger start time (UTC ISO 8601)'
         )
     }
     stages {
@@ -56,7 +93,7 @@ pipeline {
             steps {
                 echo "Running Terraform Plan..."
                 dir("${TF_DIR}") {
-                    bat "terraform plan -var=environment=%ENVIRONMENT% -var=storage_account_name=%STORAGE_ACCOUNT_NAME% -out=tfplan"
+                    bat "terraform plan -var-file=%ENVIRONMENT%.tfvars -var=storage_account_key=%STORAGE_ACCOUNT_KEY% -var=vmss_admin_password=%VMSS_ADMIN_PASSWORD% -var=storage_account_name=%STORAGE_ACCOUNT_NAME% -var=vmss_name=%VMSS_NAME% -var=vmss_admin_username=%VMSS_ADMIN_USERNAME% -var=vmss_instance_count=%VMSS_INSTANCE_COUNT% -var=adf_name=%ADF_NAME% -var=adf_source_container=%ADF_SOURCE_CONTAINER% -var=adf_destination_container=%ADF_DESTINATION_CONTAINER% -var=adf_trigger_start_time=%ADF_TRIGGER_START_TIME% -out=tfplan"
                 }
             }
         }
@@ -79,7 +116,7 @@ pipeline {
     }
     post {
         success {
-            echo "Pipeline completed successfully!"
+            echo "Pipeline completed successfully! All resources deployed to rg-demo-resources."
         }
         failure {
             echo "Pipeline failed! Check logs above."
