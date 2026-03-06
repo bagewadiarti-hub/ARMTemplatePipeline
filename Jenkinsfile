@@ -24,7 +24,7 @@ pipeline {
         )
         string(
             name: 'VMSS_NAME',
-            defaultValue: 'vmss-demo-dev',
+            defaultValue: 'vmss-demo-dev-arm-101r',
             description: 'Name of the Virtual Machine Scale Set'
         )
         string(
@@ -120,7 +120,9 @@ pipeline {
             echo "Pipeline failed! Check logs above."
         }
         always {
-            bat "if exist terraform\\tfplan del /f /q terraform\\tfplan"
+            node {
+                bat "if exist terraform\\tfplan del /f /q terraform\\tfplan"
+            }
         }
     }
 }
