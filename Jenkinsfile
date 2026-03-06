@@ -28,7 +28,7 @@ pipeline {
         )
         string(
             name: 'STORAGE_ACCOUNT_NAME',
-            defaultValue: 'stdemostorage001',
+            defaultValue: 'stgdemostorage179',
             description: 'Name of the storage account to create'
         )
     }
