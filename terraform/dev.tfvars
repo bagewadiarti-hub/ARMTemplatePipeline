@@ -1,0 +1,10 @@
+environment           = "dev"
+resource_group_name   = "rg-demo-resources"
+storage_account_name  = "stgdemostorage179"
+vmss_name             = "vmss-demo-dev-arm-101r"
+vmss_admin_username   = "azureuser"
+vmss_instance_count   = 1
+adf_name                  = "adf-demo-pipeline-dev"
+adf_source_container      = "source-container"
+adf_destination_container = "destination-container"
+adf_trigger_start_time    = "2026-01-01T00:00:00Z"
