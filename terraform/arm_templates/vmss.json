@@ -169,7 +169,7 @@
       "name": "[parameters('vmssName')]",
       "location": "[parameters('location')]",
       "sku": {
-        "name": "Standard_L2as_v3",
+        "name": "Standard_L2aos_v4",
         "tier": "Standard",
         "capacity": "[parameters('instanceCount')]"
       },
