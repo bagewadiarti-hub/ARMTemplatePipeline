@@ -79,6 +79,14 @@ pipeline {
                 }
             }
         }
+        stage('Terraform State Cleanup') {
+            steps {
+                echo "Removing stale resource group from Terraform state..."
+                dir("terraform") {
+                    bat "terraform state rm azurerm_resource_group.main 2>nul || exit 0"
+                }
+            }
+        }
         stage('Terraform Validate') {
             steps {
                 echo "Validating Terraform configuration..."
@@ -91,7 +99,7 @@ pipeline {
             steps {
                 echo "Running Terraform Plan..."
                 dir("terraform") {
-                    bat "terraform plan -var=arm_templates_path=%WORKSPACE%\\arm_templates -var-file=%ENVIRONMENT%.tfvars -var=vmss_admin_password=%VMSS_ADMIN_PASSWORD% -var=storage_account_name=%STORAGE_ACCOUNT_NAME% -var=vmss_name=%VMSS_NAME% -var=vmss_admin_username=%VMSS_ADMIN_USERNAME% -var=vmss_instance_count=%VMSS_INSTANCE_COUNT% -var=adf_name=%ADF_NAME% -var=adf_source_container=%ADF_SOURCE_CONTAINER% -var=adf_destination_container=%ADF_DESTINATION_CONTAINER% -var=adf_trigger_start_time=%ADF_TRIGGER_START_TIME% -out=tfplan"
+                    bat "terraform plan -var=arm_templates_path=%WORKSPACE%\\terraform\\arm_templates -var-file=%ENVIRONMENT%.tfvars -var=vmss_admin_password=%VMSS_ADMIN_PASSWORD% -var=storage_account_name=%STORAGE_ACCOUNT_NAME% -var=vmss_name=%VMSS_NAME% -var=vmss_admin_username=%VMSS_ADMIN_USERNAME% -var=vmss_instance_count=%VMSS_INSTANCE_COUNT% -var=adf_name=%ADF_NAME% -var=adf_source_container=%ADF_SOURCE_CONTAINER% -var=adf_destination_container=%ADF_DESTINATION_CONTAINER% -var=adf_trigger_start_time=%ADF_TRIGGER_START_TIME% -out=tfplan"
                 }
             }
         }
