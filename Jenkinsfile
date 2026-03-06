@@ -1,26 +1,17 @@
 // Jenkinsfile
 pipeline {
     agent any
-
     tools {
         terraform 'terraform'
     }
-
     environment {
         TF_DIR = "terraform"
-
         ARM_SUBSCRIPTION_ID = credentials('azure-subscription-id')
         ARM_CLIENT_ID       = credentials('azure-client-id')
         ARM_CLIENT_SECRET   = credentials('azure-client-secret')
         ARM_TENANT_ID       = credentials('azure-tenant-id')
     }
-
     parameters {
-        choice(
-            name: 'ACTION',
-            choices: ['plan', 'apply'],
-            description: 'Terraform action to perform'
-        )
         choice(
             name: 'ENVIRONMENT',
             choices: ['dev', 'staging', 'prod'],
@@ -32,23 +23,19 @@ pipeline {
             description: 'Name of the storage account to create'
         )
     }
-
     stages {
-
         stage('Checkout') {
             steps {
                 echo "Checking out source code..."
                 checkout scm
             }
         }
-
         stage('Terraform Version Check') {
             steps {
                 echo "Checking Terraform version..."
                 bat "terraform version"
             }
         }
-
         stage('Terraform Init') {
             steps {
                 echo "Initialising Terraform..."
@@ -57,7 +44,6 @@ pipeline {
                 }
             }
         }
-
         stage('Terraform Validate') {
             steps {
                 echo "Validating Terraform configuration..."
@@ -66,7 +52,6 @@ pipeline {
                 }
             }
         }
-
         stage('Terraform Plan') {
             steps {
                 echo "Running Terraform Plan..."
@@ -75,26 +60,7 @@ pipeline {
                 }
             }
         }
-
-        stage('Approval') {
-            when {
-                allOf {
-                    expression { params.ACTION == 'apply' }
-                    expression { params.ENVIRONMENT == 'prod' }
-                }
-            }
-            steps {
-                timeout(time: 30, unit: 'MINUTES') {
-                    input message: "Approve ${params.ACTION} to ${params.ENVIRONMENT}?",
-                          ok: "Yes, proceed"
-                }
-            }
-        }
-
         stage('Terraform Apply') {
-            when {
-                expression { params.ACTION == 'apply' }
-            }
             steps {
                 echo "Applying Terraform changes..."
                 dir("${TF_DIR}") {
@@ -102,11 +68,7 @@ pipeline {
                 }
             }
         }
-
         stage('Output Results') {
-            when {
-                expression { params.ACTION == 'apply' }
-            }
             steps {
                 echo "Fetching Terraform outputs..."
                 dir("${TF_DIR}") {
@@ -115,7 +77,6 @@ pipeline {
             }
         }
     }
-
     post {
         success {
             echo "Pipeline completed successfully!"
