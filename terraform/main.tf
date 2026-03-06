@@ -36,7 +36,7 @@ resource "azurerm_resource_group_template_deployment" "storage" {
   resource_group_name = data.azurerm_resource_group.main.name
   deployment_mode     = "Incremental"
 
-  template_content = file("${path.module}/../arm_templates/storage.json")
+  template_content = file("arm_templates/storage.json")
 
   parameters_content = jsonencode({
     storageAccountName       = { value = var.storage_account_name }
@@ -60,7 +60,7 @@ resource "azurerm_resource_group_template_deployment" "vmss" {
   resource_group_name = data.azurerm_resource_group.main.name
   deployment_mode     = "Incremental"
 
-  template_content = file("${path.module}/../arm_templates/vmss.json")
+  template_content = file("arm_templates/vmss.json")
 
   parameters_content = jsonencode({
     vmssName       = { value = var.vmss_name }
@@ -84,7 +84,7 @@ resource "azurerm_resource_group_template_deployment" "adf" {
   resource_group_name = data.azurerm_resource_group.main.name
   deployment_mode     = "Incremental"
 
-  template_content = file("${path.module}/../arm_templates/adf.json")
+  template_content = file("arm_templates/adf.json")
 
   parameters_content = jsonencode({
     adfName     = { value = var.adf_name }
@@ -105,7 +105,7 @@ resource "azurerm_resource_group_template_deployment" "adf_pipeline" {
   resource_group_name = data.azurerm_resource_group.main.name
   deployment_mode     = "Incremental"
 
-  template_content = file("${path.module}/../arm_templates/adf_pipeline_trigger.json")
+  template_content = file("arm_templates/adf_pipeline_trigger.json")
 
   parameters_content = jsonencode({
     adfName                    = { value = var.adf_name }
