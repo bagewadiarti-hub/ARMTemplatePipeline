@@ -1,0 +1,205 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adfName": {
+      "type": "string",
+      "metadata": { "description": "Name of the existing Azure Data Factory" }
+    },
+    "sourceStorageAccountName": {
+      "type": "string",
+      "metadata": { "description": "Source storage account name for copy activity" }
+    },
+    "sourceStorageAccountKey": {
+      "type": "securestring",
+      "metadata": { "description": "Source storage account key" }
+    },
+    "sourceContainerName": {
+      "type": "string",
+      "defaultValue": "source-container",
+      "metadata": { "description": "Source blob container name" }
+    },
+    "destinationContainerName": {
+      "type": "string",
+      "defaultValue": "destination-container",
+      "metadata": { "description": "Destination blob container name" }
+    },
+    "environment": {
+      "type": "string",
+      "metadata": { "description": "Environment tag" }
+    },
+    "triggerStartTime": {
+      "type": "string",
+      "defaultValue": "2026-01-01T00:00:00Z",
+      "metadata": { "description": "Schedule trigger start time (UTC ISO 8601)" }
+    }
+  },
+  "variables": {
+    "sourceLinkedServiceName": "LS_AzureBlob_Source",
+    "destLinkedServiceName": "LS_AzureBlob_Destination",
+    "sourceDatasetName": "DS_Blob_Source",
+    "destDatasetName": "DS_Blob_Destination",
+    "pipelineName": "PL_CopyBlob_Demo",
+    "triggerName": "TR_Daily_CopyBlob"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.DataFactory/factories/linkedservices",
+      "apiVersion": "2018-06-01",
+      "name": "[concat(parameters('adfName'), '/', variables('sourceLinkedServiceName'))]",
+      "properties": {
+        "type": "AzureBlobStorage",
+        "typeProperties": {
+          "connectionString": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('sourceStorageAccountName'), ';AccountKey=', parameters('sourceStorageAccountKey'), ';EndpointSuffix=core.windows.net')]"
+        },
+        "description": "Linked service for source Azure Blob Storage"
+      }
+    },
+    {
+      "type": "Microsoft.DataFactory/factories/linkedservices",
+      "apiVersion": "2018-06-01",
+      "name": "[concat(parameters('adfName'), '/', variables('destLinkedServiceName'))]",
+      "properties": {
+        "type": "AzureBlobStorage",
+        "typeProperties": {
+          "connectionString": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('sourceStorageAccountName'), ';AccountKey=', parameters('sourceStorageAccountKey'), ';EndpointSuffix=core.windows.net')]"
+        },
+        "description": "Linked service for destination Azure Blob Storage (same account, different container)"
+      }
+    },
+    {
+      "type": "Microsoft.DataFactory/factories/datasets",
+      "apiVersion": "2018-06-01",
+      "name": "[concat(parameters('adfName'), '/', variables('sourceDatasetName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories/linkedservices', parameters('adfName'), variables('sourceLinkedServiceName'))]"
+      ],
+      "properties": {
+        "type": "AzureBlob",
+        "linkedServiceName": {
+          "referenceName": "[variables('sourceLinkedServiceName')]",
+          "type": "LinkedServiceReference"
+        },
+        "typeProperties": {
+          "container": "[parameters('sourceContainerName')]",
+          "fileName": "*",
+          "format": { "type": "TextFormat" }
+        },
+        "description": "Source blob dataset"
+      }
+    },
+    {
+      "type": "Microsoft.DataFactory/factories/datasets",
+      "apiVersion": "2018-06-01",
+      "name": "[concat(parameters('adfName'), '/', variables('destDatasetName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories/linkedservices', parameters('adfName'), variables('destLinkedServiceName'))]"
+      ],
+      "properties": {
+        "type": "AzureBlob",
+        "linkedServiceName": {
+          "referenceName": "[variables('destLinkedServiceName')]",
+          "type": "LinkedServiceReference"
+        },
+        "typeProperties": {
+          "container": "[parameters('destinationContainerName')]",
+          "fileName": "*",
+          "format": { "type": "TextFormat" }
+        },
+        "description": "Destination blob dataset"
+      }
+    },
+    {
+      "type": "Microsoft.DataFactory/factories/pipelines",
+      "apiVersion": "2018-06-01",
+      "name": "[concat(parameters('adfName'), '/', variables('pipelineName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories/datasets', parameters('adfName'), variables('sourceDatasetName'))]",
+        "[resourceId('Microsoft.DataFactory/factories/datasets', parameters('adfName'), variables('destDatasetName'))]"
+      ],
+      "properties": {
+        "description": "Demo pipeline to copy blobs from source container to destination container",
+        "activities": [
+          {
+            "name": "CopyBlobData",
+            "type": "Copy",
+            "typeProperties": {
+              "source": {
+                "type": "BlobSource",
+                "recursive": true
+              },
+              "sink": {
+                "type": "BlobSink",
+                "copyBehavior": "PreserveHierarchy"
+              },
+              "enableStaging": false,
+              "parallelCopies": 4
+            },
+            "inputs": [
+              {
+                "referenceName": "[variables('sourceDatasetName')]",
+                "type": "DatasetReference"
+              }
+            ],
+            "outputs": [
+              {
+                "referenceName": "[variables('destDatasetName')]",
+                "type": "DatasetReference"
+              }
+            ],
+            "policy": {
+              "timeout": "01:00:00",
+              "retry": 2,
+              "retryIntervalInSeconds": 30
+            }
+          }
+        ],
+        "annotations": [
+          "[parameters('environment')]"
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.DataFactory/factories/triggers",
+      "apiVersion": "2018-06-01",
+      "name": "[concat(parameters('adfName'), '/', variables('triggerName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories/pipelines', parameters('adfName'), variables('pipelineName'))]"
+      ],
+      "properties": {
+        "type": "ScheduleTrigger",
+        "description": "Daily schedule trigger for blob copy pipeline",
+        "typeProperties": {
+          "recurrence": {
+            "frequency": "Day",
+            "interval": 1,
+            "startTime": "[parameters('triggerStartTime')]",
+            "timeZone": "UTC",
+            "schedule": {
+              "hours": [ 0 ],
+              "minutes": [ 0 ]
+            }
+          }
+        },
+        "pipelines": [
+          {
+            "pipelineReference": {
+              "referenceName": "[variables('pipelineName')]",
+              "type": "PipelineReference"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "pipelineName": {
+      "type": "string",
+      "value": "[variables('pipelineName')]"
+    },
+    "triggerName": {
+      "type": "string",
+      "value": "[variables('triggerName')]"
+    }
+  }
+}
