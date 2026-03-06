@@ -1,6 +1,11 @@
 # -------------------------------------------------------
 # General
 # -------------------------------------------------------
+variable "arm_templates_path" {
+  type        = string
+  description = "Absolute path to the arm_templates folder — passed from Jenkins workspace"
+}
+
 variable "environment" {
   type        = string
   description = "Target environment (dev / staging / prod)"
@@ -12,22 +17,18 @@ variable "resource_group_name" {
   default     = "rg-demo-resources"
 }
 
-# -------------------------------------------------------
 # Storage Account
-# -------------------------------------------------------
 variable "storage_account_name" {
   type        = string
   description = "Name of the storage account (used for ADF linked service too)"
   default     = "stgdemostorage179"
 }
 
-# -------------------------------------------------------
 # VMSS
-# -------------------------------------------------------
 variable "vmss_name" {
   type        = string
   description = "Name of the Virtual Machine Scale Set"
-  default     = "vmss-demo-arm-144"
+  default     = "vmss-demo"
 }
 
 variable "vmss_admin_username" {
@@ -48,9 +49,7 @@ variable "vmss_instance_count" {
   default     = 1
 }
 
-# -------------------------------------------------------
 # Azure Data Factory
-# -------------------------------------------------------
 variable "adf_name" {
   type        = string
   description = "Name of the Azure Data Factory (must be globally unique)"
