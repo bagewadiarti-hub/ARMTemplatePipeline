@@ -91,7 +91,7 @@ pipeline {
             steps {
                 echo "Importing existing VMSS ARM deployment into Terraform state (safe to run if already imported)..."
                 dir("terraform") {
-                    bat "terraform import azurerm_resource_group_template_deployment.vmss /subscriptions/%ARM_SUBSCRIPTION_ID%/resourceGroups/rg-demo-resources/providers/Microsoft.Resources/deployments/vmss-arm-deployment 2>nul || exit 0"
+                    bat "terraform import -var=arm_templates_path=%WORKSPACE%\\terraform\\arm_templates -var-file=%ENVIRONMENT%.tfvars -var=vmss_admin_password=%VMSS_ADMIN_PASSWORD% -var=storage_account_name=%STORAGE_ACCOUNT_NAME% -var=vmss_name=%VMSS_NAME% -var=vmss_admin_username=%VMSS_ADMIN_USERNAME% -var=vmss_instance_count=%VMSS_INSTANCE_COUNT% -var=adf_name=%ADF_NAME% -var=adf_source_container=%ADF_SOURCE_CONTAINER% -var=adf_destination_container=%ADF_DESTINATION_CONTAINER% -var=adf_trigger_start_time=%ADF_TRIGGER_START_TIME% azurerm_resource_group_template_deployment.vmss /subscriptions/%ARM_SUBSCRIPTION_ID%/resourceGroups/rg-demo-resources/providers/Microsoft.Resources/deployments/vmss-arm-deployment 2>nul || exit 0"
                 }
             }
         }
