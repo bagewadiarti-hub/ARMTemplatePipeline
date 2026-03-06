@@ -11,7 +11,7 @@ resource_group_name = "rg-demo-resources"
 storage_account_name = "stgdemostorage179"
 
 # VMSS
-vmss_name           = "vmss-demo-arm-101r"
+vmss_name           = "vmss-demo-arm-144"
 vmss_admin_username = "azureuser"
 vmss_instance_count = 1
 
