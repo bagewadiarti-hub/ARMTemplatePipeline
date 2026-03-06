@@ -5,12 +5,10 @@ pipeline {
         terraform 'terraform'
     }
     environment {
-        TF_DIR                  = "terraform"
-        ARM_SUBSCRIPTION_ID     = credentials('azure-subscription-id')
-        ARM_CLIENT_ID           = credentials('azure-client-id')
-        ARM_CLIENT_SECRET       = credentials('azure-client-secret')
-        ARM_TENANT_ID           = credentials('azure-tenant-id')
-        VMSS_ADMIN_PASSWORD     = credentials('vmss-admin-password')
+        ARM_SUBSCRIPTION_ID = credentials('azure-subscription-id')
+        ARM_CLIENT_ID       = credentials('azure-client-id')
+        ARM_CLIENT_SECRET   = credentials('azure-client-secret')
+        ARM_TENANT_ID       = credentials('azure-tenant-id')
     }
     parameters {
         choice(
@@ -32,6 +30,11 @@ pipeline {
             name: 'VMSS_ADMIN_USERNAME',
             defaultValue: 'azureuser',
             description: 'Admin username for VMSS instances'
+        )
+        password(
+            name: 'VMSS_ADMIN_PASSWORD',
+            defaultValue: '',
+            description: 'Admin password for VMSS (min 12 chars, uppercase + lowercase + number + special e.g. MyVmss@Pass123)'
         )
         string(
             name: 'VMSS_INSTANCE_COUNT',
@@ -75,7 +78,7 @@ pipeline {
         stage('Terraform Init') {
             steps {
                 echo "Initialising Terraform..."
-                dir("${TF_DIR}") {
+                dir("terraform") {
                     bat "terraform init -reconfigure -backend-config=resource_group_name=tf-rg -backend-config=storage_account_name=tfstorageprod177 -backend-config=container_name=tfstate -backend-config=key=%ENVIRONMENT%/terraform.tfstate"
                 }
             }
@@ -83,7 +86,7 @@ pipeline {
         stage('Terraform Validate') {
             steps {
                 echo "Validating Terraform configuration..."
-                dir("${TF_DIR}") {
+                dir("terraform") {
                     bat "terraform validate"
                 }
             }
@@ -91,7 +94,7 @@ pipeline {
         stage('Terraform Plan') {
             steps {
                 echo "Running Terraform Plan..."
-                dir("${TF_DIR}") {
+                dir("terraform") {
                     bat "terraform plan -var-file=%ENVIRONMENT%.tfvars -var=vmss_admin_password=%VMSS_ADMIN_PASSWORD% -var=storage_account_name=%STORAGE_ACCOUNT_NAME% -var=vmss_name=%VMSS_NAME% -var=vmss_admin_username=%VMSS_ADMIN_USERNAME% -var=vmss_instance_count=%VMSS_INSTANCE_COUNT% -var=adf_name=%ADF_NAME% -var=adf_source_container=%ADF_SOURCE_CONTAINER% -var=adf_destination_container=%ADF_DESTINATION_CONTAINER% -var=adf_trigger_start_time=%ADF_TRIGGER_START_TIME% -out=tfplan"
                 }
             }
@@ -99,7 +102,7 @@ pipeline {
         stage('Terraform Apply') {
             steps {
                 echo "Applying Terraform changes..."
-                dir("${TF_DIR}") {
+                dir("terraform") {
                     bat "terraform apply -auto-approve tfplan"
                 }
             }
@@ -107,7 +110,7 @@ pipeline {
         stage('Output Results') {
             steps {
                 echo "Fetching Terraform outputs..."
-                dir("${TF_DIR}") {
+                dir("terraform") {
                     bat "terraform output"
                 }
             }
@@ -121,9 +124,7 @@ pipeline {
             echo "Pipeline failed! Check logs above."
         }
         always {
-            dir("${TF_DIR}") {
-                bat "del /f /q tfplan 2>nul || exit 0"
-            }
+            bat "if exist terraform\\tfplan del /f /q terraform\\tfplan"
         }
     }
 }
