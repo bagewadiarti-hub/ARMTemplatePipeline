@@ -21,19 +21,13 @@ variable "storage_account_name" {
   default     = "stgdemostorage179"
 }
 
-variable "storage_account_key" {
-  type        = string
-  sensitive   = true
-  description = "Primary key of the storage account (used by ADF linked service)"
-}
-
 # -------------------------------------------------------
 # VMSS
 # -------------------------------------------------------
 variable "vmss_name" {
   type        = string
   description = "Name of the Virtual Machine Scale Set"
-  default     = "vmss-demo-arm-101r"
+  default     = "vmss-demo-arm-144"
 }
 
 variable "vmss_admin_username" {
