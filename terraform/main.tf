@@ -20,6 +20,16 @@ data "azurerm_resource_group" "main" {
 }
 
 # -------------------------------------------------------
+# Data source - fetch storage account key automatically
+# after storage ARM deployment completes
+# -------------------------------------------------------
+data "azurerm_storage_account" "main" {
+  name                = var.storage_account_name
+  resource_group_name = var.resource_group_name
+  depends_on          = [azurerm_resource_group_template_deployment.storage]
+}
+
+# -------------------------------------------------------
 # Storage Account (existing from previous deployment)
 # -------------------------------------------------------
 resource "azurerm_resource_group_template_deployment" "storage" {
@@ -99,7 +109,7 @@ resource "azurerm_resource_group_template_deployment" "adf_pipeline" {
   parameters_content = jsonencode({
     adfName                    = { value = var.adf_name }
     sourceStorageAccountName   = { value = var.storage_account_name }
-    sourceStorageAccountKey    = { value = var.storage_account_key }
+    sourceStorageAccountKey    = { value = data.azurerm_storage_account.main.primary_access_key }
     sourceContainerName        = { value = var.adf_source_container }
     destinationContainerName   = { value = var.adf_destination_container }
     environment                = { value = var.environment }
@@ -111,5 +121,5 @@ resource "azurerm_resource_group_template_deployment" "adf_pipeline" {
     ManagedBy   = "Terraform"
   }
 
-  depends_on = [azurerm_resource_group_template_deployment.adf]
+  depends_on = [azurerm_resource_group_template_deployment.adf, azurerm_resource_group_template_deployment.storage]
 }
