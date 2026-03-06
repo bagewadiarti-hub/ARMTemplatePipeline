@@ -87,6 +87,14 @@ pipeline {
                 }
             }
         }
+        stage('Terraform Import VMSS Deployment') {
+            steps {
+                echo "Importing existing VMSS ARM deployment into Terraform state (safe to run if already imported)..."
+                dir("terraform") {
+                    bat "terraform import azurerm_resource_group_template_deployment.vmss /subscriptions/%ARM_SUBSCRIPTION_ID%/resourceGroups/rg-demo-resources/providers/Microsoft.Resources/deployments/vmss-arm-deployment 2>nul || exit 0"
+                }
+            }
+        }
         stage('Terraform Validate') {
             steps {
                 echo "Validating Terraform configuration..."
