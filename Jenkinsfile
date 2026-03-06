@@ -2,9 +2,12 @@
 pipeline {
     agent any
 
+    tools {
+        terraform 'terraform-1.6.0'
+    }
+
     environment {
-        TF_VERSION = "1.6.0"
-        TF_DIR     = "terraform"
+        TF_DIR = "terraform"
 
         ARM_SUBSCRIPTION_ID = credentials('azure-subscription-id')
         ARM_CLIENT_ID       = credentials('azure-client-id')
