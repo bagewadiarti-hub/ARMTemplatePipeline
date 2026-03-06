@@ -1,0 +1,244 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vmssName": {
+      "type": "string",
+      "metadata": { "description": "Name of the Virtual Machine Scale Set" }
+    },
+    "adminUsername": {
+      "type": "string",
+      "metadata": { "description": "Admin username for VMSS instances" }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": { "description": "Admin password for VMSS instances" }
+    },
+    "instanceCount": {
+      "type": "int",
+      "defaultValue": 1,
+      "metadata": { "description": "Number of VM instances" }
+    },
+    "environment": {
+      "type": "string",
+      "metadata": { "description": "Environment tag" }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": { "description": "Location for resources" }
+    }
+  },
+  "variables": {
+    "vnetName": "[concat(parameters('vmssName'), '-vnet')]",
+    "subnetName": "[concat(parameters('vmssName'), '-subnet')]",
+    "nsgName": "[concat(parameters('vmssName'), '-nsg')]",
+    "lbName": "[concat(parameters('vmssName'), '-lb')]",
+    "lbPublicIPName": "[concat(parameters('vmssName'), '-lb-pip')]",
+    "lbFrontendName": "LoadBalancerFrontend",
+    "lbBackendName": "LoadBalancerBackend",
+    "lbProbeName": "healthProbe",
+    "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]",
+    "lbId": "[resourceId('Microsoft.Network/loadBalancers', variables('lbName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2022-07-01",
+      "name": "[variables('nsgName')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "Environment": "[parameters('environment')]",
+        "ManagedBy": "Terraform"
+      },
+      "properties": {
+        "securityRules": [
+          {
+            "name": "AllowSSH",
+            "properties": {
+              "priority": 1000,
+              "protocol": "Tcp",
+              "access": "Allow",
+              "direction": "Inbound",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "22"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2022-07-01",
+      "name": "[variables('vnetName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+      ],
+      "tags": {
+        "Environment": "[parameters('environment')]",
+        "ManagedBy": "Terraform"
+      },
+      "properties": {
+        "addressSpace": { "addressPrefixes": [ "10.0.0.0/16" ] },
+        "subnets": [
+          {
+            "name": "[variables('subnetName')]",
+            "properties": {
+              "addressPrefix": "10.0.1.0/24",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2022-07-01",
+      "name": "[variables('lbPublicIPName')]",
+      "location": "[parameters('location')]",
+      "sku": { "name": "Standard" },
+      "tags": {
+        "Environment": "[parameters('environment')]",
+        "ManagedBy": "Terraform"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Static"
+      }
+    },
+    {
+      "type": "Microsoft.Network/loadBalancers",
+      "apiVersion": "2022-07-01",
+      "name": "[variables('lbName')]",
+      "location": "[parameters('location')]",
+      "sku": { "name": "Standard" },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('lbPublicIPName'))]"
+      ],
+      "tags": {
+        "Environment": "[parameters('environment')]",
+        "ManagedBy": "Terraform"
+      },
+      "properties": {
+        "frontendIPConfigurations": [
+          {
+            "name": "[variables('lbFrontendName')]",
+            "properties": {
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('lbPublicIPName'))]"
+              }
+            }
+          }
+        ],
+        "backendAddressPools": [ { "name": "[variables('lbBackendName')]" } ],
+        "probes": [
+          {
+            "name": "[variables('lbProbeName')]",
+            "properties": {
+              "protocol": "Tcp",
+              "port": 22,
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
+            }
+          }
+        ],
+        "loadBalancingRules": [
+          {
+            "name": "SSHRule",
+            "properties": {
+              "frontendIPConfiguration": { "id": "[concat(variables('lbId'), '/frontendIPConfigurations/', variables('lbFrontendName'))]" },
+              "backendAddressPool": { "id": "[concat(variables('lbId'), '/backendAddressPools/', variables('lbBackendName'))]" },
+              "probe": { "id": "[concat(variables('lbId'), '/probes/', variables('lbProbeName'))]" },
+              "protocol": "Tcp",
+              "frontendPort": 22,
+              "backendPort": 22,
+              "enableFloatingIP": false,
+              "idleTimeoutInMinutes": 4
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachineScaleSets",
+      "apiVersion": "2023-03-01",
+      "name": "[parameters('vmssName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_L2as_v3",
+        "tier": "Standard",
+        "capacity": "[parameters('instanceCount')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
+        "[resourceId('Microsoft.Network/loadBalancers', variables('lbName'))]"
+      ],
+      "tags": {
+        "Environment": "[parameters('environment')]",
+        "ManagedBy": "Terraform"
+      },
+      "properties": {
+        "overprovision": false,
+        "upgradePolicy": { "mode": "Manual" },
+        "virtualMachineProfile": {
+          "osProfile": {
+            "computerNamePrefix": "[parameters('vmssName')]",
+            "adminUsername": "[parameters('adminUsername')]",
+            "adminPassword": "[parameters('adminPassword')]",
+            "linuxConfiguration": {
+              "disablePasswordAuthentication": false
+            }
+          },
+          "storageProfile": {
+            "imageReference": {
+              "publisher": "Canonical",
+              "offer": "0001-com-ubuntu-server-jammy",
+              "sku": "22_04-lts-gen2",
+              "version": "latest"
+            },
+            "osDisk": {
+              "createOption": "FromImage",
+              "managedDisk": { "storageAccountType": "Standard_LRS" },
+              "caching": "ReadWrite"
+            }
+          },
+          "networkProfile": {
+            "networkInterfaceConfigurations": [
+              {
+                "name": "[concat(parameters('vmssName'), '-nic')]",
+                "properties": {
+                  "primary": true,
+                  "ipConfigurations": [
+                    {
+                      "name": "[concat(parameters('vmssName'), '-ipconfig')]",
+                      "properties": {
+                        "subnet": { "id": "[variables('subnetRef')]" },
+                        "loadBalancerBackendAddressPools": [
+                          { "id": "[concat(variables('lbId'), '/backendAddressPools/', variables('lbBackendName'))]" }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "vmssId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', parameters('vmssName'))]"
+    },
+    "loadBalancerPublicIP": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('lbPublicIPName'))).ipAddress]"
+    }
+  }
+}
